@@ -1,0 +1,57 @@
+def buildInfo;
+init()
+{
+    def artifactory-url
+    def credentialsId
+    def server = Artifactory.newServer url:
+        artifactory-url, credentialsId: credentialsId
+    buildInfo = Artifactory.newBuildInfo()
+    buildInfo.retention maxBuilds: 10, maxDays: 7, deleteBuildArtifacts: true
+
+}
+upload(def foldername optional, def extension optional, 
+    def reponame, def targetfoldername optional)
+{
+    if (foldername = "")
+    {
+        foldername = "*"    
+    }
+    else
+    {
+        foldername = "*$pattern*"
+    }
+    if (extension = "")
+    {
+        extension = "zip"
+    }
+    if (targetfoldername = "")
+    {
+        targetfoldername = "SourceCode"
+    }
+    def uploadSpec = """{
+        "files": [
+        {
+        "pattern": "package/$foldername.$extension",
+        "target": "$reponame/$targetfoldername/"
+        }
+    ]
+    }"""
+    
+    server.upload spec: uploadSpec, buildInfo: buildInfo
+    server.publishBuildInfo buildInfo
+
+}
+download(def reponame, def extension, def filename)
+{
+    def downloadSpec = """{
+    "files": [
+    {
+        "pattern": "$reponame/*$filename*.$extension",
+        "target": "artifacts/"
+        }
+    ]
+    }"""
+    server.download spec: downloadSpec, buildInfo: buildInfo
+    server.publishBuildInfo buildInfo
+
+}
